@@ -10,7 +10,7 @@ A powerful URL tokenizer
 
 ```golang
 import (
-   tok "github.com/emetriq/gourltokenizer"
+   tok  "github.com/emetriq/gourltokenizer/tokenizer"
 )
 // set min token size
 tok.MinWordSize = 3
