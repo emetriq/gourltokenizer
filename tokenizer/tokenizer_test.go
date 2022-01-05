@@ -1,12 +1,14 @@
 package tokenizer
 
 import (
-	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
+func init() {
+	DefaultStopWordFunc = IsGermanStopWord
+}
 func Test_tokenizeCorrectPath(t *testing.T) {
 	path := "/some-thing/very/interesting?queryparam2=1&queryparam2=3"
 	result := tokenizeV2(path)
@@ -55,6 +57,7 @@ func Test_URLTokenizerOneWord(t *testing.T) {
 }
 
 func Test_URLTokenizerOneWordMinSize(t *testing.T) {
+
 	result := TokenizeV2("http://www.test-page.de/aaa/bbb/bc/ccc")
 	assert.ElementsMatch(t, []string{"www.test-page.de", "aaa", "bbb", "ccc"}, result)
 }
@@ -129,14 +132,6 @@ func BenchmarkURLTokenizerV1(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		TokenizeV1("http://example.com/path/sport/hsv-fussball?bla=1")
 	}
-}
-
-func createSlices(size int) []string {
-	wordCombo := make([]string, size)
-	for i := 0; i < size; i++ {
-		wordCombo[i] = "word" + strconv.Itoa(i)
-	}
-	return wordCombo
 }
 
 func BenchmarkTokenizerV1(b *testing.B) {
