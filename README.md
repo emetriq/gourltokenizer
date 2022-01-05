@@ -19,15 +19,15 @@ tok.DefaultStopWordFunc = IsGermanStopWord
 
 reuslt := tok.TokenizeV2("mailto://www.Subdomain.example.com/HSV-fussbal%3asome/a")
 // custom stop words
-reuslt2 := tok.TokenizeV2("mailto://www.Subdomain.example.com/HSV-fussbal%3asome/a", func(val string) bool {
-		if val == "fussbal" {
-			return true
-		}
-		if val == "Subdomain" {
-			return true
-		}
-		return false
-	})
+reuslt2 := tok.TokenizeV2("mailto://www.Subdomain.example.com/HSV-fussball%3asome/a", func(val string) bool {
+	if val == "fussball" {
+		return true
+	}
+	if val == "Subdomain" {
+		return true
+	}
+	return false
+})
 ```
 # Benchmark Results
 
