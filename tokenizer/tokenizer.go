@@ -10,11 +10,66 @@ var MinWordSize = 3
 
 var DefaultStopWordFunc = IsEnglishStopWord
 
+func isByteAllowed(b byte, isDotCountMode bool) bool {
+	if b >= 'a' && b <= 'z' {
+		return true
+	}
+	return isDotCountMode && b != '.' && b != '/'
+}
+
 func isRuneAllowed(r rune, isDotCountMode bool) bool {
 	if r >= 'a' && r <= 'z' {
 		return true
 	}
 	return isDotCountMode && r != '.' && r != '/'
+}
+
+// faster solution than using strings.Contains(), because we are only looking
+// for a single char and can leave the loop after
+func stringContainsByteChar(s string, r byte) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] == r {
+			return true
+		}
+	}
+	return false
+}
+
+// TokenizeV3 splits URL to host and path parts and tokenize path and host part
+// all terms are returned in lower case
+func TokenizeV3(encodedURL string, stopwordfunc ...func(string) bool) []string {
+	encodedURLLower := strings.ToLower(encodedURL)
+	var result []string
+
+	// check if url needs unescaping
+	if stringContainsByteChar(encodedURLLower, '%') {
+		decodedURL, err := url.QueryUnescape(encodedURLLower)
+		if err != nil {
+			escapedEncodedURL := url.QueryEscape(encodedURL)
+			decodedURL, err = url.QueryUnescape(escapedEncodedURL)
+		}
+
+		if err != nil {
+			return []string{}
+		}
+
+		result = filterStopWords(tokenizeV3(decodedURL), stopwordfunc...)
+	} else {
+		result = filterStopWords(tokenizeV3(encodedURLLower), stopwordfunc...)
+	}
+
+	return result
+}
+
+// TokenizeFastV3 splits URL to host and path parts and tokenize path and host part
+// all terms are returned in lower case
+func TokenizeFastV3(encodedURL string, stopwordfunc ...func(string) bool) []string {
+	urlLower := strings.ToLower(encodedURL)
+	result := tokenizeV3(urlLower)
+	if len(stopwordfunc) > 0 {
+		result = filterStopWords(result, stopwordfunc[0])
+	}
+	return result
 }
 
 //TokenizeV2 splits URL to host and path parts and tokenize path and host part
@@ -63,6 +118,71 @@ func TokenizeV1(url string, stopwordfunc ...func(string) bool) []string {
 	result := filterStopWords(tokenizeV1(path), stopwordfunc...)
 
 	return append(result, host)
+}
+
+func tokenizeV3(str string) []string {
+	// remove protocol
+	startIndex := strings.Index(str, "://")
+	if startIndex < 7 && startIndex > 0 && len(str) > startIndex+3 {
+		startIndex = startIndex + 3
+	} else {
+		startIndex = 0
+	}
+
+	strLen := len(str)
+	lastIndex := strLen - 1
+	result := make([]string, 0, strLen/MinWordSize)
+	start := -1
+	dotCounter := 0
+	isDotCountMode := true
+	domainNameEndIndex := -1
+	domainNameStartIndex := startIndex
+	var b byte
+	for idx := 0; idx < len(str); idx++ {
+		b = str[idx]
+		if idx < startIndex {
+			continue
+		}
+
+		if isByteAllowed(b, isDotCountMode) {
+			if start == -1 {
+				start = idx
+			}
+			if idx == lastIndex && ((lastIndex-start+1) >= MinWordSize || isDotCountMode) {
+				result = append(result, str[start:strLen])
+			}
+		} else if ((idx-start) >= MinWordSize || isDotCountMode) && start > -1 {
+			result = append(result, str[start:idx])
+			start = -1
+		} else {
+			start = -1
+		}
+		if b == '/' && isDotCountMode {
+			isDotCountMode = false
+			domainNameEndIndex = idx
+			dotCounter = len(result) - 1
+		}
+
+		if b == '?' { // skip query params
+			break
+		}
+	}
+
+	if isDotCountMode {
+		dotCounter = len(result) - 1
+		domainNameEndIndex = len(str)
+	}
+
+	if dotCounter > 0 && len(result) > 1 {
+		result = append(result[:(dotCounter-1)], result[dotCounter+1:]...)
+		if domainNameEndIndex-domainNameStartIndex > 3 { // if domain name is longer than 3 chars
+			for len(str) > domainNameStartIndex && str[domainNameStartIndex] == '.' {
+				domainNameStartIndex++
+			}
+			result = append(result, str[domainNameStartIndex:domainNameEndIndex])
+		}
+	}
+	return result
 }
 
 func tokenizeV2(str string) []string {

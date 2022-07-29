@@ -86,34 +86,58 @@ func Test_URLTokenizerWithWrongEscapedChars2(t *testing.T) {
 	}, result)
 }
 func Test_URLTokenizerWithWrongHostEscapedChars(t *testing.T) {
-	result := TokenizeV2("http://..example.com/something")
+	result := TokenizeV3("http://..example.com/something")
 	assert.Equal(t, []string{"something", "example.com"}, result)
 }
 
 func Test_URLTokenizerWithCapitalChars(t *testing.T) {
 	DefaultStopWordFunc = IsGermanStopWord
-	result := TokenizeV2("mailto://www.Subdomain.example.com/HSV-fussbal%3asome/a")
+	result := TokenizeV3("mailto://www.Subdomain.example.com/HSV-fussbal%3asome/a")
 	assert.ElementsMatch(t, []string{"subdomain", "hsv", "fussbal", "some", "www.subdomain.example.com"}, result)
 }
 
 func Test_URLWithoutHTTP(t *testing.T) {
-	result := TokenizeV2("www.Subdomain.example.com")
+	result := TokenizeV3("www.Subdomain.example.com")
 	assert.ElementsMatch(t, []string{"subdomain", "www.subdomain.example.com"}, result)
 }
 
 func Test_URLWithoutHTTPAndWithoutSubdomain(t *testing.T) {
-	result := TokenizeV2("www.example.com")
+	result := TokenizeV3("www.example.com")
 	assert.ElementsMatch(t, []string{"www.example.com"}, result)
 }
 
 func Test_URLWithoutHTTPAndSubdomain(t *testing.T) {
-	result := TokenizeV2("sport.fussball.example.com")
+	result := TokenizeV3("sport.fussball.example.com")
 	assert.ElementsMatch(t, []string{"sport", "fussball", "sport.fussball.example.com"}, result)
 }
 
 func Test_URLWithoutHTTPButWithPath(t *testing.T) {
-	result := TokenizeV2("www.ironsrc.com/sports")
+	result := TokenizeV3("www.ironsrc.com/sports")
 	assert.ElementsMatch(t, []string{"sports", "www.ironsrc.com"}, result)
+}
+
+func BenchmarkEscapedURLTokenizerV3(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		TokenizeV3("http://example.com/path/sport/hsv-fussball?bla=1&escaped=%2C%2C%3A%3A%3B%3B")
+	}
+}
+
+func BenchmarkURLTokenizerV3(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		TokenizeV3("http://example.com/path/sport/hsv-fussball?bla=1")
+	}
+}
+
+func BenchmarkURLTokenizerV3Fast(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		TokenizeFastV3("http://example.com/path/sport/hsv-fussball?bla=1")
+	}
+}
+
+func BenchmarkEscapedURLTokenizerV2(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		TokenizeV2("http://example.com/path/sport/hsv-fussball?bla=1&escaped=%2C%2C%3A%3A%3B%3B")
+	}
 }
 
 func BenchmarkURLTokenizerV2(b *testing.B) {
@@ -125,6 +149,12 @@ func BenchmarkURLTokenizerV2(b *testing.B) {
 func BenchmarkURLTokenizerV2Fast(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		TokenizeFastV2("http://example.com/path/sport/hsv-fussball?bla=1")
+	}
+}
+
+func BenchmarkEscapedURLTokenizerV1(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		TokenizeV2("http://example.com/path/sport/hsv-fussball?bla=1&escaped=%2C%2C%3A%3A%3B%3B")
 	}
 }
 
@@ -142,5 +172,11 @@ func BenchmarkTokenizerV1(b *testing.B) {
 func BenchmarkTokenizerV2(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		tokenizeV2("http://example.com/path/sport/hsv-fussball?bla=1")
+	}
+}
+
+func BenchmarkTokenizerV3(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		tokenizeV3("http://example.com/path/sport/hsv-fussball?bla=1")
 	}
 }
