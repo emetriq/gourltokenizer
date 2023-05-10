@@ -11,25 +11,25 @@ func init() {
 }
 func Test_tokenizeCorrectPath(t *testing.T) {
 	path := "/some-thing/very/interesting?queryparam2=1&queryparam2=3"
-	result := tokenizeV2(path)
+	result := tokenizeV3(path)
 	assert.ElementsMatch(t, []string{"some", "thing", "very", "interesting"}, result)
 }
 
 func Test_tokenizePathWithDashes(t *testing.T) {
 	path := "/some-thing/very/interesting"
-	result := tokenizeV2(path)
+	result := tokenizeV3(path)
 	assert.ElementsMatch(t, []string{"some", "thing", "very", "interesting"}, result)
 }
 
 func Test_tokenizePathWithDashes2(t *testing.T) {
 	path := "/hsv-fussball"
-	result := tokenizeV2(path)
+	result := tokenizeV3(path)
 	assert.ElementsMatch(t, []string{"hsv", "fussball"}, result)
 }
 
 func Test_tokenizeEmptyString(t *testing.T) {
 	path := ""
-	result := tokenizeV2(path)
+	result := tokenizeV3(path)
 	assert.ElementsMatch(t, []string{}, result)
 }
 
@@ -47,36 +47,35 @@ func Test_filterStopWorlds(t *testing.T) {
 }
 
 func Test_URLTokenizer(t *testing.T) {
-	result := TokenizeV2("http://example.com/path/sport/hsv-fussball?bla=1")
+	result := TokenizeV3("http://example.com/path/sport/hsv-fussball?bla=1")
 	assert.ElementsMatch(t, []string{"path", "sport", "hsv", "fussball", "example.com"}, result)
 }
 
 func Test_URLTokenizerOneWord(t *testing.T) {
-	result := TokenizeV2("http://example.com/sport")
+	result := TokenizeV3("http://example.com/sport")
 	assert.ElementsMatch(t, []string{"example.com", "sport"}, result)
 }
 
 func Test_URLTokenizerOneWordMinSize(t *testing.T) {
 
-	result := TokenizeV2("http://www.test-page.de/aaa/bbb/bc/ccc")
+	result := TokenizeV3("http://www.test-page.de/aaa/bbb/bc/ccc")
 	assert.ElementsMatch(t, []string{"www.test-page.de", "aaa", "bbb", "ccc"}, result)
 }
 
 func Test_URLTokenizerWithScapedChars(t *testing.T) {
-	result := TokenizeV2("http://example.com/%3ahttps%3A%2F%2Fwww.emetriq.com%2F", IsGermanStopWord)
+	result := TokenizeV3("http://example.com/%3ahttps%3A%2F%2Fwww.emetriq.com%2F", IsGermanStopWord)
 	assert.ElementsMatch(t, []string{"emetriq", "com", "example.com"}, result)
 }
 
 func Test_URLTokenizerWithWrongEscapedChars(t *testing.T) {
-	result := TokenizeV2("http://example.com/%%ssomething/usefull")
+	result := TokenizeV3("http://example.com/%%ssomething/usefull")
 	assert.Equal(t, []string{"ssomething", "usefull", "example.com"}, result)
 }
 func Test_URLTokenizerWithWrongEscapedChars2(t *testing.T) {
 	DefaultStopWordFunc = IsGermanStopWord
-	result := TokenizeV2("https://www.morgenpost.de/vermischtes/article233484549/marisa-burger-rosenheim-cops-schaupielerin.html?service=amp#aoh=16333619698076&csi=0&referrer=https://www.google.com&amp_tf=Von %1$s")
+	result := TokenizeV3("https://www.morgenpost.de/vermischtes/article233484549/marisa-burger-rosenheim-cops-schaupielerin.html?service=amp#aoh=16333619698076&csi=0&referrer=https://www.google.com&amp_tf=Von %1$s")
 	assert.Equal(t, []string{
 		"vermischtes",
-		"article",
 		"marisa",
 		"burger",
 		"rosenheim",
@@ -114,6 +113,18 @@ func Test_URLWithoutHTTPAndSubdomain(t *testing.T) {
 func Test_URLWithoutHTTPButWithPath(t *testing.T) {
 	result := TokenizeV3("www.ironsrc.com/sports")
 	assert.ElementsMatch(t, []string{"sports", "www.ironsrc.com"}, result)
+}
+
+func Test_SkipWordsWithNumbers(t *testing.T) {
+	result := TokenizeV3("https://www.autoscout24.at/angebote/seat-altea-xl-reference-1-4-tfsi-motorschaden-benzin-grau-b82ebced-cb95-4f49-8038-5eb1c098e652")
+	// no 'ebced'
+	assert.ElementsMatch(t, []string{"angebote", "seat", "altea", "reference", "tfsi", "motorschaden", "benzin", "grau", "www.autoscout24.at"}, result)
+	assert.NotContains(t, result, "ebced")
+
+	result = TokenizeV3("https://www.coches.net/123nissan-interstar-25dci-120-pro-l2h2-3500-diesel-2009-en-barcelona-52386149-fuvivo.aspx1")
+	// no '123nissan', 'dci' and 'aspx1'
+	assert.ElementsMatch(t, []string{"interstar", "pro", "diesel", "barcelona", "fuvivo", "www.coches.net"}, result)
+	assert.NotContains(t, result, "dci")
 }
 
 func BenchmarkEscapedURLTokenizerV3(b *testing.B) {

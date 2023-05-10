@@ -36,7 +36,8 @@ func stringContainsByteChar(s string, r byte) bool {
 }
 
 // TokenizeV3 splits URL to host and path parts and tokenize path and host part
-// all terms are returned in lower case
+// all terms are returned in lower case. If numbers are within a word, the complete
+// word is filtered out.
 func TokenizeV3(encodedURL string, stopwordfunc ...func(string) bool) []string {
 	encodedURLLower := strings.ToLower(encodedURL)
 	var result []string
@@ -72,8 +73,8 @@ func TokenizeFastV3(encodedURL string, stopwordfunc ...func(string) bool) []stri
 	return result
 }
 
-//TokenizeV2 splits URL to host and path parts and tokenize path and host part
-//all terms are returned in lower case
+// TokenizeV2 splits URL to host and path parts and tokenize path and host part
+// all terms are returned in lower case
 func TokenizeV2(encodedURL string, stopwordfunc ...func(string) bool) []string {
 	encodedURLLower := strings.ToLower(encodedURL)
 	decodedURL, err := url.QueryUnescape(encodedURLLower)
@@ -91,8 +92,8 @@ func TokenizeV2(encodedURL string, stopwordfunc ...func(string) bool) []string {
 	return result
 }
 
-//TokenizeFastV2 splits URL to host and path parts and tokenize path and host part without url decoding
-//all terms are returned in lower case
+// TokenizeFastV2 splits URL to host and path parts and tokenize path and host part without url decoding
+// all terms are returned in lower case
 func TokenizeFastV2(encodedURL string, stopwordfunc ...func(string) bool) []string {
 	urlLower := strings.ToLower(encodedURL)
 	result := tokenizeV2(urlLower)
@@ -102,8 +103,8 @@ func TokenizeFastV2(encodedURL string, stopwordfunc ...func(string) bool) []stri
 	return result
 }
 
-//TokenizeURL splits URL to host and path parts and tokenize path part
-//all terms are returned in lower case
+// TokenizeURL splits URL to host and path parts and tokenize path part
+// all terms are returned in lower case
 func TokenizeV1(url string, stopwordfunc ...func(string) bool) []string {
 	urlToParse := url
 	if !strings.HasPrefix(url, "http") && !strings.HasPrefix(url, "mailto") {
@@ -135,6 +136,7 @@ func tokenizeV3(str string) []string {
 	start := -1
 	dotCounter := 0
 	isDotCountMode := true
+	isContainingNumber := false
 	domainNameEndIndex := -1
 	domainNameStartIndex := startIndex
 	var b byte
@@ -149,12 +151,22 @@ func tokenizeV3(str string) []string {
 				start = idx
 			}
 			if idx == lastIndex && ((lastIndex-start+1) >= MinWordSize || isDotCountMode) {
-				result = append(result, str[start:strLen])
+				if !isContainingNumber {
+					result = append(result, str[start:strLen])
+				}
+				isContainingNumber = false
 			}
+		} else if b >= '0' && b <= '9' && !isDotCountMode {
+			isContainingNumber = true
 		} else if ((idx-start) >= MinWordSize || isDotCountMode) && start > -1 {
-			result = append(result, str[start:idx])
+			if !isContainingNumber {
+				result = append(result, str[start:idx])
+			}
+
+			isContainingNumber = false
 			start = -1
 		} else {
+			isContainingNumber = false
 			start = -1
 		}
 		if b == '/' && isDotCountMode {
