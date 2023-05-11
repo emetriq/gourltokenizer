@@ -17,9 +17,9 @@ tok.MinWordSize = 3
 // set default stop words
 tok.DefaultStopWordFunc = IsGermanStopWord
 
-reuslt := tok.TokenizeV3("mailto://www.Subdomain.example.com/HSV-fussbal%3asome/a")
+result := tok.Tokenize("mailto://www.Subdomain.example.com/HerthaBSC-fussbal%3asome/a")
 // custom stop words
-reuslt2 := tok.TokenizeV3("mailto://www.Subdomain.example.com/HSV-fussball%3asome/a", func(val string) bool {
+result2 := tok.Tokenize("mailto://www.Subdomain.example.com/HerthaBSC-fussball%3asome/a", func(val string) bool {
 	if val == "fussball" {
 		return true
 	}
@@ -30,6 +30,7 @@ reuslt2 := tok.TokenizeV3("mailto://www.Subdomain.example.com/HSV-fussball%3asom
 })
 ```
 # Benchmark Results
+*Current version is V3.*
 
 goos: linux
 goarch: amd64
